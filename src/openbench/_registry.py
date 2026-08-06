@@ -265,6 +265,7 @@ from .evals.healthbench import healthbench, healthbench_hard, healthbench_consen
 from .evals.hellaswag import hellaswag  # noqa: F401, E402
 from .evals.hle import hle, hle_text  # noqa: F401, E402
 from .evals.humaneval import humaneval  # noqa: F401, E402
+from .evals.livecodebench import livecodebench_v6  # noqa: F401, E402
 from .evals.ifeval import ifeval  # noqa: F401, E402
 from .evals.ifbench import ifbench  # noqa: F401, E402
 from .evals.exercism.exercism import (  # noqa: F401, E402
@@ -415,6 +416,12 @@ from .evals import logiqa  # noqa: F401, E402
 from .evals import mathqa  # noqa: F401, E402
 from .evals import sciq  # noqa: F401, E402
 from .evals import truthfulqa  # noqa: F401, E402
+from .evals import bfcl  # noqa: F401, E402
+from .evals import gsm8k_hard  # noqa: F401, E402
+from .evals import ceval  # noqa: F401, E402
+from .evals import ocrbench  # noqa: F401, E402
+from .evals import global_piqa  # noqa: F401, E402
+from .evals import evalplus  # noqa: F401, E402
 from .evals import factscore  # noqa: F401, E402
 
 # Linguistic Phenomena benchmarks
@@ -428,10 +435,13 @@ from .evals.matharena.aime_2024_II.aime_2024_II import aime_2024_II  # noqa: F40
 from .evals.matharena.aime_2024.aime_2024 import aime_2024  # noqa: F401, E402
 from .evals.matharena.aime_2025.aime_2025 import aime_2025  # noqa: F401, E402
 from .evals.matharena.aime_2025_II.aime_2025_II import aime_2025_II  # noqa: F401, E402
+from .evals.matharena.aime_2026.aime_2026 import aime_2026  # noqa: F401, E402
 from .evals.matharena.brumo_2025.brumo_2025 import brumo_2025  # noqa: F401, E402
 from .evals.matharena.hmmt_feb_2023.hmmt_feb_2023 import hmmt_feb_2023  # noqa: F401, E402
 from .evals.matharena.hmmt_feb_2024.hmmt_feb_2024 import hmmt_feb_2024  # noqa: F401, E402
 from .evals.matharena.hmmt_feb_2025.hmmt_feb_2025 import hmmt_feb_2025  # noqa: F401, E402
+from .evals.matharena.hmmt_nov_2025.hmmt_nov_2025 import hmmt_nov_2025  # noqa: F401, E402
+from .evals.matharena.hmmt_feb_2026.hmmt_feb_2026 import hmmt_feb_2026  # noqa: F401, E402
 
 # Domain-Specific benchmarks
 from .evals.arabic_exams import (  # noqa: F401, E402

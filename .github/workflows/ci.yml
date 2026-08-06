@@ -80,7 +80,31 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          uv run pytest -m "not integration" --cov=openbench --cov-report=term-missing
+          uv run pytest -m "not integration and not docker" --cov=openbench --cov-report=term-missing
+
+  docker-sandbox-test:
+    name: Docker Sandbox Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Build and exercise hardened sandboxes
+        run: uv run pytest -m docker -v
 
   integration-test:
     name: Integration Tests
@@ -140,14 +164,15 @@ jobs:
   all-checks:
     name: All Checks Pass
     runs-on: ubuntu-latest
-    needs: [quality-checks, test, integration-test, security]
+    needs: [quality-checks, test, docker-sandbox-test, integration-test, security]
     if: always()
     steps:
       - name: Verify all checks passed
         run: |
           # Quality checks and test must always pass
           if [[ "${{ needs.quality-checks.result }}" != "success" || 
-                "${{ needs.test.result }}" != "success" ]]; then
+                "${{ needs.test.result }}" != "success" ||
+                "${{ needs.docker-sandbox-test.result }}" != "success" ]]; then
             echo "One or more required checks failed"
             exit 1
           fi

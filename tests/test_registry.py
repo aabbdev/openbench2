@@ -1,11 +1,13 @@
 """Test the registry module functionality."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
+
 from openbench.config import (
-    load_task,
     TASK_REGISTRY,
     _load_entry_point_benchmarks,
+    load_task,
 )
 from openbench.utils import BenchmarkMetadata
 
@@ -14,6 +16,9 @@ def test_task_registry_contents():
     """Test that the task registry contains expected benchmarks."""
     assert "mmlu" in TASK_REGISTRY
     assert TASK_REGISTRY["mmlu"] == "openbench.evals.mmlu.mmlu"
+    assert TASK_REGISTRY["livecodebench_v6"] == (
+        "openbench.evals.livecodebench.livecodebench_v6"
+    )
 
 
 def test_load_task_valid():

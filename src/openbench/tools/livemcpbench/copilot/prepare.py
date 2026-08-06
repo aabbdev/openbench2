@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Optional
 import json as _json
 
-from .server import _user_cache_dir, _ensure_parent_dir, _generate_embeddings_file
 from .upstream_cache import (
     get_clean_config_cached,
     get_tools_json_cached,
@@ -21,6 +20,8 @@ import shutil
 
 
 def _default_embeddings_path() -> Path:
+    from .server import _user_cache_dir
+
     embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
     abstract_model = os.getenv("ABSTRACT_MODEL", "gpt-4.1-2025-04-14")
     return (
@@ -42,6 +43,8 @@ def prepare_copilot_cache(
     Returns:
         Path to the generated embeddings JSON.
     """
+    from .server import _ensure_parent_dir, _generate_embeddings_file
+
     # Ensure upstream JSONs are cached
     get_clean_config_cached(force_refresh)
     get_tools_json_cached(force_refresh)

@@ -36,3 +36,27 @@ async def score_numeric_answer(state: TaskState, target: Target) -> Score:
 def grade_school_math_scorer() -> Callable:
     """Scorer for grade school math problems using numeric answer extraction."""
     return score_numeric_answer
+
+
+@scorer(metrics=[accuracy(), stderr()])
+def numeric_tolerance_scorer(tolerance: float = 1e-3) -> Callable:
+    """Score a parsed numeric answer with a strict absolute tolerance."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        extracted = parse_numeric_answer(
+            state.output.completion, state.metadata.get("answer_prefix", "Answer")
+        )
+        try:
+            prediction = float(extracted.replace(",", ""))
+            expected = float(target.text)
+            correct = abs(prediction - expected) < tolerance
+        except (AttributeError, TypeError, ValueError):
+            correct = False
+
+        return Score(
+            value=1.0 if correct else 0.0,
+            answer=extracted or "[No answer found]",
+            explanation=f"Absolute tolerance: {tolerance}",
+        )
+
+    return score

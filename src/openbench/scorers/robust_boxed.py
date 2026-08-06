@@ -1,7 +1,10 @@
 """Enhanced boxed answer extraction scorer with better fallback logic."""
 
 # Adapted from https://github.com/openai/gpt-oss
+import ast
+import operator
 import re
+from fractions import Fraction
 from typing import Optional
 
 from inspect_ai.scorer import (
@@ -35,18 +38,22 @@ def extract_boxed_answer(
     Returns:
         The extracted answer string, or None if not found
     """
-    # Look for boxed, fbox, or framebox patterns
-    pattern = r"\\(?:boxed|fbox|framebox)\{([^}]*?)\}"
-    matches = re.findall(pattern, text, re.DOTALL)
-
-    if matches:
-        # Get the last boxed answer (most likely to be final answer)
-        answer = matches[-1]
-        # If there are nested braces, extract innermost content
-        if "," in answer:
-            # Sometimes answers have extra formatting, take last part
-            answer = answer.split(",")[-1]
-        return answer.strip()
+    # Parse balanced braces so fractions such as \boxed{-\frac{1}{21}} survive.
+    answers: list[str] = []
+    for match in re.finditer(r"\\(?:boxed|fbox|framebox)\{", text):
+        start = match.end()
+        depth = 1
+        for index in range(start, len(text)):
+            if text[index] == "{":
+                depth += 1
+            elif text[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    answers.append(text[start:index].strip())
+                    break
+    if answers:
+        answer = answers[-1]
+        return answer.split(",")[-1].strip() if "," in answer else answer
 
     # Fallback to last number if enabled
     if fallback_to_last_number:
@@ -56,6 +63,104 @@ def extract_boxed_answer(
             return numbers[-1]
 
     return None
+
+
+def _replace_latex_fractions(expression: str) -> str:
+    token = "\\frac"
+    while token in expression:
+        start = expression.rfind(token)
+        cursor = start + len(token)
+        args: list[str] = []
+        for _ in range(2):
+            if cursor >= len(expression) or expression[cursor] != "{":
+                return expression
+            depth = 1
+            arg_start = cursor + 1
+            cursor += 1
+            while cursor < len(expression) and depth:
+                depth += expression[cursor] == "{"
+                depth -= expression[cursor] == "}"
+                cursor += 1
+            if depth:
+                return expression
+            args.append(expression[arg_start : cursor - 1])
+        expression = (
+            expression[:start] + f"(({args[0]})/({args[1]}))" + expression[cursor:]
+        )
+    return expression
+
+
+def _exact_arithmetic_value(answer: str) -> Fraction | None:
+    expression = answer.strip().replace(",", "")
+    expression = expression.replace("\\dfrac", "\\frac").replace("\\tfrac", "\\frac")
+    expression = _replace_latex_fractions(expression)
+    expression = re.sub(r"\^\{([^{}]+)\}", r"**(\1)", expression)
+    expression = re.sub(r"\^(\-?\d+)", r"**\1", expression)
+    expression = expression.replace("\\cdot", "*").replace("\\times", "*")
+    expression = expression.replace(" ", "")
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return None
+
+    binary = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.Pow: operator.pow,
+    }
+
+    def evaluate(node: ast.AST) -> Fraction:
+        if isinstance(node, ast.Expression):
+            return evaluate(node.body)
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return Fraction(str(node.value))
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+            value = evaluate(node.operand)
+            return -value if isinstance(node.op, ast.USub) else value
+        if isinstance(node, ast.BinOp) and type(node.op) in binary:
+            left, right = evaluate(node.left), evaluate(node.right)
+            if isinstance(node.op, ast.Pow):
+                if right.denominator != 1 or abs(right.numerator) > 10000:
+                    raise ValueError
+                return left**right.numerator
+            return binary[type(node.op)](left, right)
+        raise ValueError
+
+    try:
+        return evaluate(tree)
+    except (ValueError, ZeroDivisionError, OverflowError):
+        return None
+
+
+@scorer(metrics=[accuracy(), std(), stderr()])
+def matharena_answer_scorer() -> Scorer:
+    """Score MathArena final answers, including fractions and exact powers."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        extracted = extract_boxed_answer(state.output.completion, True)
+        if extracted is None:
+            return Score(value=INCORRECT, explanation="No final answer found")
+
+        actual = _exact_arithmetic_value(extracted)
+        expected = _exact_arithmetic_value(target.text)
+        if actual is not None and expected is not None:
+            correct = actual == expected
+        else:
+
+            def normalize(value: str) -> str:
+                value = value.replace("\\left", "").replace("\\right", "")
+                return re.sub(r"\s+", "", value)
+
+            correct = normalize(extracted) == normalize(target.text)
+        return Score(
+            value=CORRECT if correct else INCORRECT,
+            answer=extracted,
+            explanation=f"Extracted '{extracted}', target was '{target.text}'",
+        )
+
+    return score
 
 
 def normalize_numeric_answer(answer: str) -> Optional[str]:

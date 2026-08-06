@@ -13,6 +13,14 @@ copilot agent:
 https://github.com/icip-cas/LiveMCPBench/tree/main/baseline/mcp_copilot
 """
 
-from .server import serve as run_copilot_server
+from typing import Any
+
+
+def run_copilot_server(*args: Any, **kwargs: Any) -> Any:
+    """Start the optional MCP server without importing it at package load time."""
+    from .server import serve
+
+    return serve(*args, **kwargs)
+
 
 __all__ = ["run_copilot_server"]

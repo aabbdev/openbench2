@@ -39,9 +39,122 @@ Citation:
 }
 """
 
+import re
+
 from inspect_ai import Task, task
+from inspect_ai.dataset import Sample, hf_dataset
+from inspect_ai.model import GenerateConfig
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Target,
+    accuracy,
+    scorer,
+    stderr,
+)
+from inspect_ai.solver import TaskState, generate
 from openbench.utils.mcq import MCQEval, MCQSample
 from openbench.utils.text import create_dynamic_multiple_choice_prompt
+
+BBH_DATASET_REVISION = "982bb89fd79532a8ac676a61fc42eb1aeec63f99"
+
+
+def _free_response_record(record: dict) -> Sample:
+    return Sample(
+        input=(
+            f"{record['input']}\n\nSolve the problem step by step. End your response "
+            "with `So the answer is <answer>`."
+        ),
+        target=str(record["target"]),
+    )
+
+
+def _normalize_bbh_answer(value: str) -> str:
+    value = value.strip().rstrip(".").strip()
+    return re.sub(r"\s+", " ", value).casefold()
+
+
+@scorer(metrics=[accuracy(), stderr()])
+def bbh_exact_match_scorer():
+    """Extract the final BBH answer without truncating free responses."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        completion = state.output.completion.strip()
+        matches = re.findall(
+            r"(?is)so\s+the\s+answer\s+is\s*:?\s*(.+?)(?:\n|$)", completion
+        )
+        answer = matches[-1].strip() if matches else completion.splitlines()[-1].strip()
+        correct = _normalize_bbh_answer(answer) == _normalize_bbh_answer(target.text)
+        return Score(
+            value=CORRECT if correct else INCORRECT,
+            answer=answer,
+            explanation="Normalized exact match against the BBH target",
+        )
+
+    return score
+
+
+def _bbh_free_response_task(subset: str) -> Task:
+    return Task(
+        dataset=hf_dataset(
+            path="lukaemon/bbh",
+            name=subset,
+            split="test",
+            revision=BBH_DATASET_REVISION,
+            sample_fields=_free_response_record,
+            auto_id=True,
+        ),
+        solver=generate(),
+        scorer=bbh_exact_match_scorer(),
+        config=GenerateConfig(temperature=0.0, max_tokens=2048),
+        name=f"bbh_{subset}",
+    )
+
+
+@task
+def bbh_boolean_expressions() -> Task:
+    return _bbh_free_response_task("boolean_expressions")
+
+
+@task
+def bbh_dyck_languages() -> Task:
+    return _bbh_free_response_task("dyck_languages")
+
+
+@task
+def bbh_formal_fallacies() -> Task:
+    return _bbh_free_response_task("formal_fallacies")
+
+
+@task
+def bbh_hyperbaton() -> Task:
+    return _bbh_free_response_task("hyperbaton")
+
+
+@task
+def bbh_multistep_arithmetic_two() -> Task:
+    return _bbh_free_response_task("multistep_arithmetic_two")
+
+
+@task
+def bbh_object_counting() -> Task:
+    return _bbh_free_response_task("object_counting")
+
+
+@task
+def bbh_penguins_in_a_table() -> Task:
+    return _bbh_free_response_task("penguins_in_a_table")
+
+
+@task
+def bbh_web_of_lies() -> Task:
+    return _bbh_free_response_task("web_of_lies")
+
+
+@task
+def bbh_word_sorting() -> Task:
+    return _bbh_free_response_task("word_sorting")
 
 
 def record_to_mcq_sample(record: dict) -> MCQSample:
