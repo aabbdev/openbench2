@@ -56,7 +56,16 @@ include = ["openbench*"]
 [tool.setuptools.package-data]
 "openbench.evals.livecodebench" = ["Dockerfile", "compose.yaml"]
 "openbench.evals.evalplus" = ["Dockerfile", "compose.yaml"]
-"openbench.evals.bfcl" = ["Dockerfile", "compose.yaml", "runner.py"]
+"openbench.evals.bfcl" = [
+  "Dockerfile",
+  "Dockerfile.agentic",
+  "compose.yaml",
+  "compose.live.yaml",
+  "compose.replay.yaml",
+  "requirements-agentic.in",
+  "requirements-agentic.txt",
+  "runner.py",
+]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["__pycache__/*", "*.pyc"]

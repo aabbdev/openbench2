@@ -179,3 +179,93 @@ def test_bfcl_official_multi_turn_checker_runs_in_sandbox(tmp_path: Path) -> Non
         payload_name=".openbench_bfcl_payload.json",
     )
     assert result["valid"] is True
+
+
+def test_bfcl_memory_runner_preserves_prerequisite_state(tmp_path: Path) -> None:
+    if shutil.which("docker") is None:
+        pytest.skip("Docker CLI is unavailable")
+    project = f"openbench-bfcl-memory-{uuid.uuid4().hex[:12]}"
+    compose = [
+        "compose",
+        "-p",
+        project,
+        "-f",
+        str(ROOT / "src/openbench/evals/bfcl/compose.yaml"),
+    ]
+    socket_path = "/workspace/bfcl-memory.sock"
+    class_name = "MemoryAPI_kv"
+    session_id = "memory_kv_prereq_integration-0"
+    common: dict[str, object] = {
+        "previous_count": 0,
+        "initial_config": {
+            class_name: {
+                "model_result_dir": "/workspace/memory_snapshots",
+                "scenario": "customer",
+                "test_id": session_id,
+                "test_category": "memory_kv",
+            }
+        },
+        "involved_classes": [class_name],
+        "id": session_id,
+        "category": "memory_kv",
+        "scenario": "customer",
+    }
+
+    try:
+        _docker(*compose, "build", timeout=600)
+        _docker(*compose, "up", "-d", timeout=120)
+        _docker(
+            *compose,
+            "exec",
+            "-T",
+            "default",
+            "sh",
+            "-c",
+            "nohup python /opt/openbench/bfcl_runner.py --serve "
+            f"{socket_path} >/workspace/server.log 2>&1 & "
+            f"for i in $(seq 1 100); do [ -S {socket_path} ] && exit 0; "
+            "sleep 0.1; done; exit 1",
+            timeout=60,
+        )
+
+        responses = []
+        for index, payload in enumerate(
+            [
+                {
+                    "operation": "execute",
+                    "calls": ["core_memory_add(key='first_name', value='Michael')"],
+                    **common,
+                },
+                {"operation": "memory_context", "calls": [], **common},
+                {"operation": "shutdown"},
+            ]
+        ):
+            local_payload = tmp_path / f"memory-{index}.json"
+            local_payload.write_text(json.dumps(payload))
+            container_payload = f"/workspace/memory-{index}.json"
+            _write_container_file(compose, container_payload, local_payload)
+            completed = _docker(
+                *compose,
+                "exec",
+                "-T",
+                "default",
+                "python",
+                "/opt/openbench/bfcl_runner.py",
+                "--client",
+                socket_path,
+                container_payload,
+                timeout=180,
+            )
+            responses.append(json.loads(completed.stdout.strip().splitlines()[-1]))
+
+        assert "Michael" in responses[1]["system_prompt"]
+        assert responses[2]["stopped"] is True
+    finally:
+        subprocess.run(
+            ["docker", *compose, "down", "--volumes", "--remove-orphans"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )

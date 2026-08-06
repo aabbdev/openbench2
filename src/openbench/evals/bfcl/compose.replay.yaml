@@ -1,0 +1,20 @@
+services:
+  default:
+    build:
+      context: .
+      dockerfile: Dockerfile.agentic
+    environment:
+      BFCL_PROJECT_ROOT: /workspace
+    init: true
+    network_mode: none
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 6g
+    cpus: 2
+    tmpfs:
+      - /workspace:size=256m,mode=0700,uid=1000,gid=1000
+      - /opt/huggingface/hub/models--sentence-transformers--all-MiniLM-L6-v2/trees:size=1m,mode=0700,uid=1000,gid=1000

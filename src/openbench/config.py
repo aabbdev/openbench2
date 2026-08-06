@@ -124,6 +124,15 @@ _BUILTIN_BENCHMARKS = {
         function_name="bfcl_v4_agentic_offline",
         is_alpha=False,
     ),
+    "bfcl_v4_agentic_live": BenchmarkMetadata(
+        name="BFCL v4 Agentic Live",
+        description="Official model-specific BFCL memory pipelines and live SERPAPI web search",
+        category="core",
+        tags=["function-calling", "tools", "bfcl", "agentic", "live", "docker"],
+        module_path="openbench.evals.bfcl",
+        function_name="bfcl_v4_agentic_live",
+        is_alpha=False,
+    ),
     "bfcl_v4_offline": BenchmarkMetadata(
         name="BFCL v4 Offline Aggregate",
         description="All BFCL v4 sections with official weights and frozen agentic evidence",

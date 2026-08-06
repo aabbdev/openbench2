@@ -50,6 +50,8 @@ AGENTIC_CATEGORIES = (
     "web_search_no_snippet",
 )
 
+MEMORY_SCENARIOS = ("customer", "finance", "healthcare", "notetaker", "student")
+
 _MULTI_TURN_COUNT = 200
 
 _FUNCTION_DOCS = {
@@ -115,6 +117,11 @@ _FILE_SHA256 = {
     "multi_turn_func_doc/travel_booking.json": "f17b950c13adddf41d0848077df58788252e4c2e7cad5cfa71c8c4bf04f57b26",
     "multi_turn_func_doc/vehicle_control.json": "0c8a66292844874ef7b168f343bc394d8615d2d9e1f4387999a9ee23011eac78",
     "multi_turn_func_doc/web_search.json": "61fcee411e35f7ff67415e18cd67276615cf06e1c8841a683d2d997dbb46eac5",
+    "memory_prereq_conversation/memory_customer.json": "806ac91e558e3d933e526ecc0c286e417657f76a3c9b9073eef830a532eb4eb2",
+    "memory_prereq_conversation/memory_finance.json": "3cef1f235667f479b8f45c7082247454b2129ee88fe4fbcdbc53fd2cdf495b75",
+    "memory_prereq_conversation/memory_healthcare.json": "56e7bd7b2e7c01efe81f1e0be85149ea3886bb2d9cb59f90e9d9e27b91f4604d",
+    "memory_prereq_conversation/memory_notetaker.json": "07f3239ef2e9e1421901f05d3c8192469fa129324e124a47bcb35ff9c7785c91",
+    "memory_prereq_conversation/memory_student.json": "e2d6c32e9e2671c61f682e845dcdafd9eee7c9f3e2d5da1615d3afd2aeecf2f0",
 }
 
 _COUNTS = {
@@ -347,3 +354,99 @@ def get_bfcl_v4_agentic_dataset(
                 )
             )
     return MemoryDataset(samples=samples, name="bfcl_v4_agentic_offline")
+
+
+def get_bfcl_v4_agentic_live_dataset(
+    categories: list[str] | tuple[str, ...] | None = None,
+) -> MemoryDataset:
+    """Load BFCL's live agentic workflows, grouped by backend.
+
+    Each dataset sample represents one complete backend evaluation. Grouping keeps
+    the official memory prerequisite chain model-specific and prevents Inspect's
+    sample parallelism from racing the shared scenario snapshots.
+    """
+
+    selected = tuple(categories or AGENTIC_CATEGORIES)
+    unknown = set(selected) - set(AGENTIC_CATEGORIES)
+    if unknown:
+        raise ValueError(f"Unsupported BFCL live agentic categories: {sorted(unknown)}")
+
+    memory_questions = _load_jsonl("BFCL_v4_memory.json")
+    memory_answers = {
+        str(row["id"]): list(row["ground_truth"])
+        for row in _load_jsonl("possible_answer/BFCL_v4_memory.json")
+    }
+    web_questions = _load_jsonl("BFCL_v4_web_search.json")
+    web_answers = {
+        str(row["id"]): list(row["ground_truth"])
+        for row in _load_jsonl("possible_answer/BFCL_v4_web_search.json")
+    }
+    prerequisites = {
+        scenario: _load_jsonl(f"memory_prereq_conversation/memory_{scenario}.json")
+        for scenario in MEMORY_SCENARIOS
+    }
+
+    samples: list[Sample] = []
+    for category in selected:
+        is_memory = category.startswith("memory_")
+        if is_memory:
+            backend = category.removeprefix("memory_")
+            class_name = f"MemoryAPI_{backend}"
+            scenarios = []
+            for scenario in MEMORY_SCENARIOS:
+                cases = [
+                    {
+                        "id": str(question["id"]).replace("memory", category),
+                        "question": question["question"],
+                        "expected_answers": memory_answers[str(question["id"])],
+                    }
+                    for question in memory_questions
+                    if question["scenario"] == scenario
+                ]
+                scenarios.append(
+                    {
+                        "name": scenario,
+                        "prerequisites": prerequisites[scenario],
+                        "cases": cases,
+                    }
+                )
+            workflow = {"scenarios": scenarios}
+            case_count = len(memory_questions)
+        else:
+            class_name = "WebSearchAPI"
+            workflow = {
+                "cases": [
+                    {
+                        "id": str(question["id"]).replace("web_search", category),
+                        "question": question["question"],
+                        "expected_answers": web_answers[str(question["id"])],
+                    }
+                    for question in web_questions
+                ]
+            }
+            case_count = len(web_questions)
+
+        samples.append(
+            Sample(
+                id=f"{category}_workflow",
+                input=[
+                    ChatMessageUser(
+                        content=f"Run the pinned BFCL v4 {category} workflow."
+                    )
+                ],
+                target="",
+                metadata={
+                    "category": category,
+                    "functions": _load_function_docs([class_name]),
+                    "involved_classes": [class_name],
+                    "workflow": workflow,
+                    "case_count": case_count,
+                    "show_snippet": category != "web_search_no_snippet",
+                    "bfcl_revision": BFCL_REVISION,
+                    "license": BFCL_LICENSE,
+                    "live_agentic": True,
+                },
+            )
+        )
+
+    return MemoryDataset(samples=samples, name="bfcl_v4_agentic_live")

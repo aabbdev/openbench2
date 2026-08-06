@@ -103,14 +103,20 @@ def _standardize_answer(value: str) -> str:
     return re.sub(r"[,./\-_*^()]", "", value).lower().replace("'", '"')
 
 
-def _agentic_score(state: TaskState) -> Score:
-    completion = state.output.completion
+def agentic_answer_matches(completion: str, expected: list[str]) -> bool:
+    """Apply BFCL's official normalized answer-containment rule."""
+
     standardized = _standardize_answer(completion)
-    expected = [str(value) for value in state.metadata["expected_answers"]]
-    matched = any(
+    return any(
         re.search(rf"\b{re.escape(_standardize_answer(answer))}\b", standardized)
         for answer in expected
     )
+
+
+def _agentic_score(state: TaskState) -> Score:
+    completion = state.output.completion
+    expected = [str(value) for value in state.metadata["expected_answers"]]
+    matched = agentic_answer_matches(completion, expected)
     return Score(
         value=CORRECT if matched else INCORRECT,
         answer=completion,
@@ -127,6 +133,26 @@ def bfcl_v4_agentic_scorer() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         del target
         return _agentic_score(state)
+
+    return score
+
+
+@scorer(metrics=[bfcl_v4_agentic_metrics()])
+def bfcl_v4_agentic_live_scorer() -> Scorer:
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        accuracy = float(state.metadata.get("agentic_accuracy", 0.0))
+        case_count = int(state.metadata.get("case_count", 0))
+        correct_count = int(state.metadata.get("agentic_correct_count", 0))
+        return Score(
+            value=accuracy,
+            answer=f"{correct_count}/{case_count}",
+            metadata={
+                "category": state.metadata["category"],
+                "live_agentic": True,
+                "case_count": case_count,
+            },
+        )
 
     return score
 
