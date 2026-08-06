@@ -5,6 +5,8 @@ services:
     init: true
     command: tail -f /dev/null
     network_mode: none
+    environment:
+      BFCL_PROJECT_ROOT: /workspace
     read_only: true
     tmpfs:
       - /workspace:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=1073741824

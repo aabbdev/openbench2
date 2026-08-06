@@ -1,0 +1,37 @@
+FROM python:3.11-slim@sha256:94c50be2dc994b873b55bc123e95e6dbade08095b3dfd790f51c34de3f08cbb7
+
+ARG BFCL_REVISION=6ea57973c7a6097fd7c5915698c54c17c5b1b6c8
+ARG EMBEDDING_REVISION=1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+
+ENV HF_HOME=/opt/huggingface \
+    TOKENIZERS_PARALLELISM=false \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
+
+COPY requirements-agentic.txt /tmp/requirements-agentic.txt
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git ca-certificates \
+    && pip install --no-cache-dir \
+      --extra-index-url https://download.pytorch.org/whl/cpu \
+      -r /tmp/requirements-agentic.txt \
+    && pip install --no-cache-dir --no-build-isolation --no-deps \
+      "bfcl_eval @ git+https://github.com/ShishirPatil/gorilla.git@${BFCL_REVISION}#subdirectory=berkeley-function-call-leaderboard" \
+    && python -c "from huggingface_hub import snapshot_download; snapshot_download('sentence-transformers/all-MiniLM-L6-v2', revision='${EMBEDDING_REVISION}')" \
+    && mkdir -p /opt/huggingface/hub/models--sentence-transformers--all-MiniLM-L6-v2/refs \
+    && printf '%s' "${EMBEDDING_REVISION}" > /opt/huggingface/hub/models--sentence-transformers--all-MiniLM-L6-v2/refs/main \
+    && apt-get purge --yes --auto-remove git \
+    && rm -rf /var/lib/apt/lists/* /tmp/requirements-agentic.txt
+
+ENV HF_HUB_DISABLE_XET=1 \
+    HF_HUB_OFFLINE=1
+
+RUN useradd --create-home --uid 1000 sandbox \
+    && mkdir --parents /workspace \
+    && chown sandbox:sandbox /workspace
+
+COPY runner.py /opt/openbench/bfcl_runner.py
+
+USER sandbox
+WORKDIR /workspace
+CMD ["sleep", "infinity"]

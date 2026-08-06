@@ -1,0 +1,14 @@
+beautifulsoup4
+build
+faiss-cpu==1.11.0
+filelock==3.20.0
+google-search-results
+html2text
+huggingface-hub
+numpy==1.26.4
+overrides
+rank-bm25==0.2.2
+requests
+sentence-transformers>=2.7.0
+setuptools-scm[toml]>=8.0
+wheel

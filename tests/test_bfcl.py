@@ -14,10 +14,11 @@ from openbench.config import BENCHMARKS
 from openbench.datasets.bfcl import (
     BFCL_REVISION,
     get_bfcl_v4_agentic_dataset,
+    get_bfcl_v4_agentic_live_dataset,
     get_bfcl_v4_multi_turn_dataset,
     get_bfcl_v4_single_turn_dataset,
 )
-from openbench.evals.bfcl import bfcl_v4_single_turn
+from openbench.evals.bfcl import bfcl_v4_agentic_live, bfcl_v4_single_turn
 from openbench.scorers.bfcl import bfcl_v4_scorer
 
 
@@ -77,6 +78,22 @@ def test_bfcl_task_uses_deterministic_native_tool_generation() -> None:
     assert task.metadata["official_overall_score"] is False
 
 
+def test_bfcl_live_task_selects_network_disabled_snapshot_replay() -> None:
+    dataset = MemoryDataset(
+        [Sample(input="workflow", target="", metadata={"category": "memory_kv"})]
+    )
+    with patch(
+        "openbench.evals.bfcl.get_bfcl_v4_agentic_live_dataset",
+        return_value=dataset,
+    ):
+        task_factory = cast(Any, bfcl_v4_agentic_live)
+        task = task_factory.__wrapped__(["memory_kv"], web_snapshot_dir="snapshots")
+
+    assert str(task.sandbox.config).endswith("compose.replay.yaml")
+    assert dataset[0].metadata is not None
+    assert dataset[0].metadata["web_snapshot_dir"] == "snapshots"
+
+
 def test_bfcl_registry_entry_is_explicitly_single_turn() -> None:
     metadata = BENCHMARKS["bfcl_v4_single_turn"]
     assert metadata.function_name == "bfcl_v4_single_turn"
@@ -85,6 +102,7 @@ def test_bfcl_registry_entry_is_explicitly_single_turn() -> None:
     assert (
         BENCHMARKS["bfcl_v4_agentic_offline"].function_name == "bfcl_v4_agentic_offline"
     )
+    assert BENCHMARKS["bfcl_v4_agentic_live"].function_name == "bfcl_v4_agentic_live"
     assert BENCHMARKS["bfcl_v4_offline"].function_name == "bfcl_v4_offline"
 
 
@@ -160,6 +178,56 @@ def test_bfcl_agentic_dataset_expands_backends_and_web_modes() -> None:
         "web_search_base",
         "web_search_no_snippet",
     ]
+
+
+def test_bfcl_live_agentic_dataset_groups_model_dependent_workflows() -> None:
+    memory_question = {
+        "id": "memory_0-customer-0",
+        "scenario": "customer",
+        "question": [[{"role": "user", "content": "My name?"}]],
+    }
+    memory_answer = {
+        "id": memory_question["id"],
+        "ground_truth": ["Michael"],
+    }
+    prerequisite = {
+        "id": "memory_prereq_0-customer-0",
+        "scenario": "customer",
+        "question": [[{"role": "user", "content": "My name is Michael."}]],
+    }
+    web_question = {
+        "id": "web_search_0",
+        "question": [[{"role": "user", "content": "Who?"}]],
+    }
+    web_answer = {"id": web_question["id"], "ground_truth": ["Ada"]}
+
+    def fake_load(path: str):
+        if "multi_turn_func_doc" in path:
+            return QUESTION["function"]
+        if "memory_prereq_conversation" in path:
+            return [prerequisite]
+        if path == "BFCL_v4_memory.json":
+            return [memory_question]
+        if path == "possible_answer/BFCL_v4_memory.json":
+            return [memory_answer]
+        if path == "BFCL_v4_web_search.json":
+            return [web_question]
+        return [web_answer]
+
+    with (
+        patch("openbench.datasets.bfcl._load_jsonl", side_effect=fake_load),
+        patch("openbench.datasets.bfcl.MEMORY_SCENARIOS", ("customer",)),
+    ):
+        dataset = get_bfcl_v4_agentic_live_dataset(["memory_kv", "web_search_base"])
+
+    assert len(dataset) == 2
+    memory_metadata = cast(dict[str, Any], dataset[0].metadata)
+    web_metadata = cast(dict[str, Any], dataset[1].metadata)
+    assert memory_metadata["case_count"] == 1
+    assert memory_metadata["workflow"]["scenarios"][0]["prerequisites"] == [
+        prerequisite
+    ]
+    assert web_metadata["case_count"] == 1
 
 
 @pytest.mark.asyncio

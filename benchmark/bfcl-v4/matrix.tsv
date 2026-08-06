@@ -10,3 +10,9 @@ bfcl_v4_agentic_offline	pinned_dataset	1	665	5	done	Three memory backends and tw
 bfcl_v4_offline	weighted_aggregate	1	5106	5	done	Official 10/10/10/30/40 section weights applied; explicitly not labeled as the live official score
 bfcl_v4_multi_turn	mock_transport	1	1	4.41	done	End-to-end Inspect tool transport, Docker startup, solver, and scorer completed
 bfcl_v4_agentic_offline	mock_transport	1	1	0.02	done	End-to-end frozen agentic solver and scorer completed
+bfcl_v4_agentic_live	pinned_workflows	1	665	5	done	37 model-specific memory prerequisites, 465 memory targets, and 200 live web targets grouped into five race-free workflows
+bfcl_v4_agentic_live	memory_backend_smoke	1	3	1	done	KV, all-MiniLM-L6-v2 vector, and recursive-summary backends produced official state-derived prompts in Docker
+bfcl_v4_agentic_live	persistent_memory_transport	1	1	1	done	Inspect mock model wrote prerequisite state, retrieved it in an isolated target conversation, and scored 1.0
+bfcl_v4_agentic_live	web_snapshot_replay	1	1	1	done	Exact recorded tool trace replayed in a network-disabled image and scored 1.0
+bfcl_v4_agentic_live	two_provider_transport	1	0	0	blocked	No provider credentials or configured local model were available; no real-model score is claimed
+bfcl_v4	official_alias_gate	1	0	0	blocked	Alias withheld pending two-provider runs and differential output scoring against the upstream harness
