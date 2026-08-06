@@ -1,7 +1,7 @@
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai import Task
 from inspect_ai.model import GenerateConfig
-from openbench.scorers import aime_scorer
+from openbench.scorers import matharena_answer_scorer
 from inspect_ai.solver import generate, prompt_template
 
 
@@ -23,6 +23,7 @@ def matharena_task(
     instruction: str,
     name: str,
     default_max_tokens: int,
+    revision: str | None = None,
     default_temperature: float = 0.6,
     default_epochs: int = 4,
 ) -> Task:
@@ -30,13 +31,14 @@ def matharena_task(
         path=dataset_path,
         split="train",
         sample_fields=matharena_record_to_sample,
+        revision=revision,
     )
 
     TEMPLATE = instruction + "\n\n" + "{prompt}"
     return Task(
         dataset=dataset,
         solver=[prompt_template(TEMPLATE), generate()],
-        scorer=aime_scorer(),  # Use specialized AIME scorer with robust extraction
+        scorer=matharena_answer_scorer(),
         name=name,
         config=GenerateConfig(
             temperature=default_temperature,

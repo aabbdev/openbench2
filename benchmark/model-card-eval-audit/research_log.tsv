@@ -1,0 +1,14 @@
+timestamp	candidate_or_scope	action	status	notes
+2026-08-06T00:00:00Z	workspace	baseline	completed	Clean main worktree; inspected config registry and eval/dataset/scorer file inventory
+2026-08-06T00:00:01Z	all six cards	raw README access smoke test	completed	All six official raw README URLs returned successfully
+2026-08-06T00:00:02Z	workspace	tooling check	inconclusive	rg is unavailable; continued with find and grep
+2026-08-06T00:00:03Z	Qwen/Qwen3.6-27B	extract 45 scored rows	completed	Revision 6a9e13bd6fc8f0983b9b99948120bc37f49c13e9
+2026-08-06T00:00:04Z	LiquidAI/LFM2.5-2.6B	extract 12 scored rows	completed	All rows omit metric, shots, and benchmark protocol
+2026-08-06T00:00:05Z	Qwen/Qwen3.5-4B	extract 70 scored rows	completed	69 names; VideoMME has with/without subtitle configurations
+2026-08-06T00:00:06Z	Nanbeige/Nanbeige4.2-3B	extract 25 scored occurrences	completed	README/YAML HMMT-Feb-2026 conflict retained
+2026-08-06T00:00:07Z	microsoft/Phi-4-mini-instruct	extract scored table and appendix	completed	17 scored rows plus 19 public named appendix additions
+2026-08-06T00:00:08Z	google/gemma-4-E4B-it	extract 17 scored rows	completed	URL available and ungated
+2026-08-06T00:00:09Z	workspace	map registry and implementation coverage	completed	Exact, partial/version mismatch, missing, and internal buckets recorded in coverage.md
+2026-08-06T00:00:10Z	workspace	broad repository actor scan	dead-end	Actor stalled; replaced with targeted config/eval inspection
+2026-08-06T00:00:11Z	workspace	delayed strict registry cross-check	completed	594 built-in IDs confirmed; MRCR v2 reclassified exact-to-partial because v2 identity is not explicit
+2026-08-06T00:00:12Z	LiveCodeBench v6	implement highest-priority gap	completed	Pinned cumulative release_v6; official prompt and pass@k protocol; network-disabled Docker execution

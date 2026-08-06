@@ -1,0 +1,21 @@
+candidate	case	rep	metric	resource	status	notes
+truthfulqa_mc2	baseline_registry	1	0	0	unsupported	Only the existing TruthfulQA task was found before Wave 1 work
+ceval	baseline_registry	1	0	0	unsupported	No existing integration found before Wave 1 work
+bigbench_hard_23	baseline_registry	1	18	18	unsupported	Existing implementation exposes 18 of 23 tasks and no 23-task aggregate
+ocrbench_v1	baseline_registry	1	0	0	unsupported	Only OCRBench v2 exists; it must remain distinct
+global_piqa	baseline_registry	1	0	0	unsupported	Only PIQA exists
+browsecomp_plus	baseline_registry	1	0	0	unsupported	Only BrowseComp exists
+aime_2026	focused_tests	1	1	0	done	MathArena/aime_2026 pinned at d2de22f3c656b4f56cf8981212186377d1e23bc3; registry and group tested
+hmmt_nov_2025	focused_tests	1	1	0	done	MathArena/hmmt_nov_2025 pinned at 118dbfb45c4c9467c672268ed55166642897aa46; third-party CC-BY-NC-SA-4.0 transcription avoids redistributing copyrighted PDFs
+hmmt_feb_2026	focused_tests	1	1	0	done	MathArena/hmmt_feb_2026 pinned at 02fba4f74d8e68e73e66a02d540fd979c05c274c; registry and group tested
+imoanswerbench	baseline_registry	1	0	0	unsupported	No existing integration found before Wave 1 work
+gsm8k_hard	baseline_registry	1	0	0	unsupported	Only GSM8K and GSM-Plus were found
+humaneval_plus	baseline_registry	1	0	0	unsupported	Only HumanEval exists
+mbpp_plus	baseline_registry	1	0	0	unsupported	Only MBPP exists
+wave1	baseline_unit_tests	1	399	15.52	done	399 passed; 3 unrelated pre-existing failures; 2 skipped; 9 integration tests deselected
+wave1	baseline_export_cli	1	0	0	error	Two pre-existing export command assertions fail
+wave1	baseline_dependency_resolution	1	0	0	error	inspect-ai==0.3.141 is absent from the current package index
+matharena_new	focused_tests	1	18	5.74	done	18 passed for new factories, immutable revisions, registry, and aggregate group
+wave1	docker_sandbox_smoke	1	2	3.71	done	LiveCodeBench and EvalPlus images built; network/read-only/capability/PID controls and payload unlinking verified end to end
+wave1	mypy_full	1	453	0	done	No type errors after adding Python-3.10-compatible pandas stubs
+wave1	full_unit_tests	1	432	49.70	done	432 passed and 11 environment-dependent tests skipped before dedicated Docker execution

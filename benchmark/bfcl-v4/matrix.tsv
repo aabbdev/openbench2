@@ -1,0 +1,12 @@
+candidate	case	rep	metric	resource	status	notes
+bfcl_v4_single_turn	pinned_dataset	1	3641	13	done	All official single-turn categories loaded at revision 6ea57973c7a6097fd7c5915698c54c17c5b1b6c8 with per-file SHA-256 verification
+function_calling_core	unit_tests	1	9	1.98	done	Native JSON and Python parsing, schema conversion, optional/nested arguments, parallel matching, scorer, task, and registry covered
+bfcl_v4_single_turn	canonical_answer_sweep	1	2501	0	done	All scored AST ground truths exercised; five inconsistent upstream records remain fail-closed under official-style validation
+phase_0_1	full_unit_tests	1	441	50.40	done	441 passed, 2 environment-dependent skips, 11 integration/docker tests deselected
+phase_0_1	docker_sandboxes	1	2	10.31	done	LiveCodeBench and EvalPlus hardened images built and executed end to end
+phase_0_1	pre_commit	1	5	0	done	Ruff check, Ruff format, pyproject sync, mypy, and registry imports all passed
+bfcl_v4_multi_turn	pinned_dataset	1	800	4	done	All official multi-turn categories loaded and checked by the pinned upstream state/response evaluator in Docker
+bfcl_v4_agentic_offline	pinned_dataset	1	665	5	done	Three memory backends and two frozen web-search modes loaded without external credentials
+bfcl_v4_offline	weighted_aggregate	1	5106	5	done	Official 10/10/10/30/40 section weights applied; explicitly not labeled as the live official score
+bfcl_v4_multi_turn	mock_transport	1	1	4.41	done	End-to-end Inspect tool transport, Docker startup, solver, and scorer completed
+bfcl_v4_agentic_offline	mock_transport	1	1	0.02	done	End-to-end frozen agentic solver and scorer completed

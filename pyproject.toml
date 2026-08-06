@@ -16,7 +16,7 @@ authors = [
 dependencies = [
     "datasets>=3.6.0",
     "groq>=0.33.0",
-    "inspect-ai==0.3.141",
+    "inspect-ai==0.3.142",
     "inspect_swe>=0.2.26",
     "anthropic>=0.69.0",
     "openai>=2.0.0",
@@ -29,6 +29,8 @@ dependencies = [
     "tiktoken>=0.11.0",
     "typer>=0.15.3",
     "numpy==2.2.6",
+    "tree-sitter>=0.25.2",
+    "tree-sitter-python>=0.25.0",
 ]
 
 [project.urls]
@@ -51,6 +53,14 @@ package-dir = {"" = "src"}
 where = ["src"]
 include = ["openbench*"]
 
+[tool.setuptools.package-data]
+"openbench.evals.livecodebench" = ["Dockerfile", "compose.yaml"]
+"openbench.evals.evalplus" = ["Dockerfile", "compose.yaml"]
+"openbench.evals.bfcl" = ["Dockerfile", "compose.yaml", "runner.py"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["__pycache__/*", "*.pyc"]
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-ra -q --strict-markers"
@@ -60,6 +70,7 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "integration: marks tests that require external services (deselect with '-m \"not integration\"')",
+    "docker: marks tests that build and execute Docker sandboxes",
 ]
 filterwarnings = [
     "ignore:install \"ipywidgets\" for Jupyter support:UserWarning:rich.live",
@@ -90,6 +101,7 @@ tau2 = { git = "https://github.com/sierra-research/tau2-bench.git", rev = "558e6
 [dependency-groups]
 dev = [
     "mypy>=1.15.0",
+    "pandas-stubs>=2.3.3.260113,<3",
     "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-asyncio==0.24.0",
