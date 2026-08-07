@@ -457,6 +457,24 @@ _BUILTIN_BENCHMARKS = {
         module_path="openbench.evals.livebench",
         function_name="livebench_coding_2024_11_25",
     ),
+    "ojbench_python": BenchmarkMetadata(
+        name="OJBench Python",
+        description="Competition-level Python generation with the official DMOJ judge",
+        category="core",
+        tags=["coding", "python", "execution", "docker", "online-judge"],
+        module_path="openbench.evals.ojbench",
+        function_name="ojbench_python",
+        is_alpha=True,
+    ),
+    "ojbench_cpp": BenchmarkMetadata(
+        name="OJBench C++",
+        description="Competition-level C++ generation with the official DMOJ judge",
+        category="core",
+        tags=["coding", "cpp", "execution", "docker", "online-judge"],
+        module_path="openbench.evals.ojbench",
+        function_name="ojbench_cpp",
+        is_alpha=True,
+    ),
     # Exercism benchmarks
     "exercism": BenchmarkMetadata(
         name="Exercism",

@@ -62,6 +62,7 @@ include = ["openbench*"]
   "requirements-arm64.lock",
 ]
 "openbench.evals.evalplus" = ["Dockerfile", "compose.yaml"]
+"openbench.evals.ojbench" = ["Dockerfile", "compose.yaml"]
 "openbench.evals.bfcl" = [
   "Dockerfile",
   "Dockerfile.agentic",

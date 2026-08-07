@@ -2,10 +2,12 @@
 
 ## Decision
 
-OJBench is recorded as unsupported for this OpenBench wave. Unlike Spider and
-MEGA, OJBench does publish a full prompt file for LLM generation, but faithful
-scoring depends on a DMOJ-based online-judge runtime that has not been validated
-inside OpenBench's hardened Docker policy.
+OJBench now has alpha `ojbench_python` and `ojbench_cpp` registry IDs backed by
+the official DMOJ judge. Each language track contains 232 problems and uses
+eight samples per problem, matching the paper's Pass@1/Pass@8 protocol. The
+paper uses each model's recommended sampling parameters rather than one global
+temperature/top-p configuration, so OpenBench deliberately leaves those model
+settings configurable.
 
 ## Canonical sources
 
@@ -53,12 +55,35 @@ JSONL file. It does not implement DMOJ setup, code extraction, test execution,
 partial verdicts, or scoring, so it is not sufficient evidence for a faithful
 OpenBench integration.
 
-## OpenBench compatibility finding
+## OpenBench implementation
 
-OJBench should be integrated only once there is a validated Docker execution
-boundary for DMOJ that preserves OpenBench's safety policy: network disabled,
-capabilities dropped, no new privileges, bounded process/memory limits, and no
-host compiler/runtime escape. That image also needs the large LFS problem zips
-or a reproducible cache step. Until that exists, adding a registry ID would risk
-either weakening the sandbox or reporting scores from an unvalidated judge. The
-candidate is therefore blocked rather than approximated.
+- Prompts are checksum-verified and loaded from the pinned Hugging Face
+  revision.
+- Test archives and custom validators are downloaded lazily per problem into a
+  host cache mounted read-only at `/problems`. A limited run therefore does not
+  require downloading the complete 7.85 GB source repository.
+- The image installs OJBench commit
+  `5e94480b1e135b98855cf5bc81213c256aff5b17` and DMOJ commit
+  `f098cd3a49a60186d1fadde5132329ec5f4f2213`, with exact Python dependencies,
+  C++17 `g++`, and PyPy3.
+- The scorer returns only the final verdict, number of executed cases, and
+  partial pass booleans. Per-case inputs, outputs, and feedback never enter
+  Inspect logs.
+
+The container runs without networking, with a read-only root filesystem,
+`no-new-privileges`, bounded memory/PIDs, and `cap_drop: ALL`. DMOJ cptbox
+requires `SYS_PTRACE` to supervise its own child process, so that single
+capability is restored explicitly. Generated programs remain under DMOJ's
+seccomp and filesystem policies; `/problems` is not in their readable policy.
+
+## Validation and remaining gate
+
+On local arm64 Docker, both CPP17 and PYPY3 executor self-tests passed. Wrong
+Python and C++ submissions were judged against 20 real `loj-2083` cases and
+returned `WA`. A submission attempting to read the mounted hidden-test
+`init.yml` returned DMOJ `IR`, confirming the anti-oracle filesystem boundary.
+
+The complete 7.85 GB problem corpus has not yet been executed end to end, and
+no credentialed model run has been scored. The two registry IDs therefore
+remain alpha until broader custom-validator coverage and real Pass@1/Pass@8
+runs are complete.
