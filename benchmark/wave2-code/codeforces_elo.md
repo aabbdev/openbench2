@@ -16,6 +16,8 @@ calculation, or canonical evaluation repository is linked from the model card.
   Gemma variants.
 - The card contains no other `Codeforces ELO` occurrence and supplies no
   methodology note or source link for that row.
+- Gemma 4 Technical Report `arXiv:2607.02770v2` repeats the rating row but adds
+  no Codeforces methods section, task manifest, or evaluator reference.
 
 An exact-name GitHub search found downstream catalog/ranking references, but no
 repository identified as the Gemma 4 evaluator. LiveOIBench and similarly named

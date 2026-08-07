@@ -1,4 +1,4 @@
-FROM python:3.11-slim@sha256:94c50be2dc994b873b55bc123e95e6dbade08095b3dfd790f51c34de3f08cbb7 AS builder
+FROM python:3.11-slim-bookworm@sha256:d29f48a31a8b408ed19272ca1e7b10ebae13b240a27e862d3d4217c528e2e0c3 AS builder
 
 ARG DMOJ_REVISION=f098cd3a49a60186d1fadde5132329ec5f4f2213
 ARG OJBENCH_REVISION=5e94480b1e135b98855cf5bc81213c256aff5b17
@@ -22,7 +22,7 @@ RUN python -m pip install --no-cache-dir \
     && python -m pip wheel --no-build-isolation --no-cache-dir --no-deps \
         --wheel-dir /wheels /src/ojbench
 
-FROM python:3.11-slim@sha256:94c50be2dc994b873b55bc123e95e6dbade08095b3dfd790f51c34de3f08cbb7
+FROM python:3.11-slim-bookworm@sha256:d29f48a31a8b408ed19272ca1e7b10ebae13b240a27e862d3d4217c528e2e0c3
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends g++ libseccomp2 pypy3 \

@@ -62,7 +62,8 @@ OpenBench integration.
 - Test archives and custom validators are downloaded lazily per problem into a
   host cache mounted read-only at `/problems`. A limited run therefore does not
   require downloading the complete 7.85 GB source repository.
-- The image installs OJBench commit
+- The image uses digest-pinned Python 3.11 Bookworm (GCC 12) and installs
+  OJBench commit
   `5e94480b1e135b98855cf5bc81213c256aff5b17` and DMOJ commit
   `f098cd3a49a60186d1fadde5132329ec5f4f2213`, with exact Python dependencies,
   C++17 `g++`, and PyPy3.
@@ -76,14 +77,58 @@ requires `SYS_PTRACE` to supervise its own child process, so that single
 capability is restored explicitly. Generated programs remain under DMOJ's
 seccomp and filesystem policies; `/problems` is not in their readable policy.
 
-## Validation and remaining gate
+## Validation
 
-On local arm64 Docker, both CPP17 and PYPY3 executor self-tests passed. Wrong
-Python and C++ submissions were judged against 20 real `loj-2083` cases and
-returned `WA`. A submission attempting to read the mounted hidden-test
+On local arm64 Docker, both CPP17 and PYPY3 executor self-tests passed. A
+synthetic one-case problem exercised AC, WA, CE, RTE/IR, TLE, and memory-pressure
+paths in both runtimes. A submission attempting to read the mounted hidden-test
 `init.yml` returned DMOJ `IR`, confirming the anti-oracle filesystem boundary.
 
-The complete 7.85 GB problem corpus has not yet been executed end to end, and
-no credentialed model run has been scored. The two registry IDs therefore
-remain alpha until broader custom-validator coverage and real Pass@1/Pass@8
-runs are complete.
+The complete pinned corpus was then downloaded: 232 problem directories and
+232 archives totalling 7,505,819,661 bytes. The preflight script evaluated a
+fast sentinel submission against every configuration with early stop after the
+first failure:
+
+- Python/PYPY3: 232/232 normal `WA` verdicts, zero infrastructure errors,
+  137.26 seconds wall time;
+- C++17: 232/232 normal `WA` verdicts, zero infrastructure errors, 247.54
+  seconds wall time;
+- all 17 problems using custom checkers, interactors, or output validators
+  compiled and returned normal verdicts.
+
+The first image used Debian Trixie/GCC 14 and exposed compilation failures in
+two upstream `testlib.h` validators. Switching to digest-pinned Bookworm/GCC 12
+restored all official validators without modifying benchmark artifacts.
+
+### Full real-model Pass@1/Pass@8 run
+
+A complete credential-free protocol run used
+`RWKV/RWKV7-1.5B-20260805` revision
+`bfb3a69a63e6681f729651c357f13ce0c774ea9c` on an RTX 5090. Generation used
+eight samples, seed 42, temperature 0.8, top-p 0.9, and at most 1,024 new
+tokens. The resulting 3,712-record JSONL contains exactly 1,856 generations per
+language and one record for every problem/language/epoch key; its SHA-256 is
+`93594d74033c147e452c44dde6e2ab3f288aa9e96b419833e6a520f7a7da9b8a`.
+
+Every generation was judged against the full pinned problem corpus. The
+validation harness stopped after the first non-AC case because the released
+metrics use only final AC; this preserves Pass@1/Pass@8 exactly while avoiding
+unnecessary hidden-case execution for already-failed programs. It emitted only
+IDs, verdicts, counts, and timing. The sanitized 3,712-row score file has
+SHA-256 `14895ae1b722e57e6b74f323b47511c5f8f22b312afeb91ce6f68b44a13b3ae9`
+and zero exceptions, `IE`, or `Skip` verdicts.
+
+| Track | Accepted samples | Problems solved at 8 | Pass@1 | Pass@8 |
+| --- | ---: | ---: | ---: | ---: |
+| Python | 8/1,856 | 4/232 | 0.4310% | 1.7241% |
+| C++ | 4/1,856 | 2/232 | 0.2155% | 0.8621% |
+
+Pass@1 is the official eight-sample estimator (accepted samples divided by
+1,856), not the score of an arbitrarily selected epoch. Pass@8 is the fraction
+of problems with at least one AC across the eight samples.
+
+The run closes the full-corpus generation/judging/reducer gate. The registry IDs
+remain alpha because generation used a direct pinned Transformers model rather
+than an Inspect-native provider and only one model stack has completed the full
+protocol. The score validates the implementation; it is not a leaderboard
+quality claim.

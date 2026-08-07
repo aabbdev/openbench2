@@ -146,6 +146,14 @@ def test_compose_declares_required_dmoj_boundary():
     assert service["security_opt"] == ["no-new-privileges:true"]
 
 
+def test_dockerfile_pins_bookworm_for_validator_compatibility():
+    dockerfile = (
+        Path(__file__).parents[1] / "src/openbench/evals/ojbench/Dockerfile"
+    ).read_text()
+    assert dockerfile.count("python:3.11-slim-bookworm@sha256:") == 2
+    assert "python:3.11-slim@sha256:" not in dockerfile
+
+
 def test_registry_entries():
     assert BENCHMARKS["ojbench_python"].function_name == "ojbench_python"
     assert BENCHMARKS["ojbench_cpp"].function_name == "ojbench_cpp"

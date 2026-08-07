@@ -15,9 +15,10 @@ a separately configured GPT-4.1 judge.
 - Repository commit inspected:
   `f79c7562b59e4f8142b0437fc725eb3ee1aec76c`
 - Dataset: `Agents-X/TIR-Bench`
-- Dataset revision: `ae9976e81e86c4797fd0d28f9119393b37d9d006`
+- Dataset revision: `7fed373b469403c85755fb2629c79bcc74ad883b`
 - Dataset license: Apache-2.0.
-- Published scope: 1,215 examples across 13 image-reasoning tasks.
+- Current Hub scope: 2,591 rows across 15 configurations; the released
+  extraction path asserts 1,215 scored responses across 13 task families.
 
 The repository itself does not include a license file. The Apache-2.0 label
 above comes from the immutable Hugging Face dataset metadata and should not be
@@ -35,6 +36,10 @@ The repository provides two post-generation stages:
    jigsaw-position accuracy, OCR substring checks, Levenshtein normalization,
    and `math_verify` fallbacks.
 
+The paper says GPT-4o was used for extraction, while the current repository
+defaults to GPT-4.1. These are distinct published protocol variants and should
+not share one score identity without a differential comparison.
+
 The scripts expect model responses to exist already. They do not define how the
 evaluated model receives images, creates or invokes image-processing tools,
 iterates over intermediate images, limits tool calls, or converts that trajectory
@@ -44,10 +49,8 @@ runtime.
 
 ## OpenBench compatibility finding
 
-A faithful integration needs two missing protocol components: the canonical
-agent/tool generation harness and explicit authority/configuration for the
-GPT-4.1 extraction judge. A static VQA prompt would measure a different task,
-while substituting a hand-authored deterministic extractor would change the
-published metric. OpenBench therefore records the public data and scorer but
-does not expose a `tir_bench` task until those choices can be reproduced or made
-explicit in the benchmark identity.
+A faithful full integration still needs the canonical agent/tool generation
+harness. A bounded next slice is an explicitly named no-tools variant using the
+dataset's published instructions and the repository GPT-4.1 extractor; it must
+not be presented as the paper's with-CI aggregate. Substituting a hand-authored
+deterministic extractor would change the published metric.
