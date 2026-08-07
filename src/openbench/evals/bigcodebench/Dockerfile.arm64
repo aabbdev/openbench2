@@ -37,18 +37,25 @@ RUN python -m pip install --no-cache-dir \
     datasets==2.17.0 \
     Faker==20.1.0 \
     Flask==3.0.3 \
+    Flask-Login==0.6.3 \
+    Flask-Mail==0.9.1 \
+    gensim==4.3.2 \
     geopandas==0.13.2 \
     Levenshtein==0.25.0 \
+    librosa==0.10.1 \
     lxml==4.9.3 \
     matplotlib==3.7.0 \
     multipledispatch==1.0.0 \
     nltk==3.8 \
+    numba==0.57.1 \
     numpy==1.23.5 \
     opencv-python-headless==4.9.0.80 \
+    openpyxl==3.1.2 \
     pqdm==0.2.0 \
     psutil==5.9.5 \
     pyarrow==14.0.1 \
     pyquery==1.4.3 \
+    pycryptodome==3.14.1 \
     pytesseract==0.3.10 \
     python-docx==1.1.0 \
     rsa==4.9 \
@@ -65,7 +72,10 @@ RUN python -m pip install --no-cache-dir \
     tree-sitter-python==0.23.2 \
     wget==3.2 \
     wordcloud==1.9.3 \
+    xlrd==2.0.1 \
     xlwt==1.3.0
+
+RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt stopwords
 
 RUN useradd --create-home --uid 1000 bigcodebenchuser \
     && mkdir --parents /app \
