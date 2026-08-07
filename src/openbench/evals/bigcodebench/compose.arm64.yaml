@@ -13,6 +13,7 @@ services:
     read_only: true
     environment:
       MPLCONFIGDIR: /tmp/matplotlib
+      NUMBA_CACHE_DIR: /tmp/numba
     tmpfs:
       - /app:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=2147483648
       - /tmp:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=4294967296
