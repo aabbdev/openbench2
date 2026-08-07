@@ -433,6 +433,14 @@ _BUILTIN_BENCHMARKS = {
         module_path="openbench.evals.humaneval",
         function_name="humaneval",
     ),
+    "bigcodebench": BenchmarkMetadata(
+        name="BigCodeBench",
+        description="Practical Python code generation with diverse function calls and complex instructions",
+        category="core",
+        tags=["coding", "generation", "execution", "docker", "python"],
+        module_path="openbench.evals.bigcodebench",
+        function_name="bigcodebench",
+    ),
     "livecodebench_v6": BenchmarkMetadata(
         name="LiveCodeBench v6",
         description="Contamination-aware Python code generation through the April 2025 release",
@@ -440,6 +448,14 @@ _BUILTIN_BENCHMARKS = {
         tags=["coding", "generation", "execution", "docker", "live"],
         module_path="openbench.evals.livecodebench",
         function_name="livecodebench_v6",
+    ),
+    "livebench_coding_2024_11_25": BenchmarkMetadata(
+        name="LiveBench Coding 2024-11-25",
+        description="Latest fully public LiveBench contamination-free coding release",
+        category="core",
+        tags=["coding", "generation", "execution", "docker", "live"],
+        module_path="openbench.evals.livebench",
+        function_name="livebench_coding_2024_11_25",
     ),
     # Exercism benchmarks
     "exercism": BenchmarkMetadata(

@@ -265,7 +265,9 @@ from .evals.healthbench import healthbench, healthbench_hard, healthbench_consen
 from .evals.hellaswag import hellaswag  # noqa: F401, E402
 from .evals.hle import hle, hle_text  # noqa: F401, E402
 from .evals.humaneval import humaneval  # noqa: F401, E402
+from .evals.bigcodebench import bigcodebench  # noqa: F401, E402
 from .evals.livecodebench import livecodebench_v6  # noqa: F401, E402
+from .evals.livebench import livebench_coding_2024_11_25  # noqa: F401, E402
 from .evals.ifeval import ifeval  # noqa: F401, E402
 from .evals.ifbench import ifbench  # noqa: F401, E402
 from .evals.exercism.exercism import (  # noqa: F401, E402

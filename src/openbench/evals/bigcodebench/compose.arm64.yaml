@@ -1,0 +1,24 @@
+services:
+  default:
+    build:
+      context: .
+      dockerfile: Dockerfile.arm64
+      args:
+        BIGCODEBENCH_COMMIT: 09dd993f46c3fbf3a799465bb96d524edcb0b199
+    image: openbench-bigcodebench-arm64:dev
+    platform: linux/arm64
+    entrypoint: ["tail", "-f", "/dev/null"]
+    init: true
+    network_mode: none
+    read_only: true
+    environment:
+      MPLCONFIGDIR: /tmp/matplotlib
+    tmpfs:
+      - /app:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=2147483648
+      - /tmp:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=4294967296
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 36g
