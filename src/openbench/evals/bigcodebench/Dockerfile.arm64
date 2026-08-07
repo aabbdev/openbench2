@@ -1,0 +1,55 @@
+FROM python:3.10-slim@sha256:34a2c9467a0231d8c29a5ecadc219733a9393b026882b44d91616b9dae6088b6
+
+ARG BIGCODEBENCH_COMMIT=09dd993f46c3fbf3a799465bb96d524edcb0b199
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++ \
+    git \
+    libfreetype6-dev \
+    libgdal-dev \
+    libpng-dev \
+    libsndfile1 \
+    pkg-config \
+    procps \
+    python3-dev \
+    python3-tk \
+    r-base \
+    tesseract-ocr \
+    unzip \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade \
+    pip==26.2.1 \
+    setuptools==80.9.0 \
+    wheel==0.47.0
+
+RUN git clone https://github.com/bigcode-project/bigcodebench.git /bigcodebench \
+    && cd /bigcodebench \
+    && git checkout "${BIGCODEBENCH_COMMIT}" \
+    && python -m pip install . --no-deps
+
+# Fully resolved from the arm64 image that passed the canonical Hard preflight.
+# The source package is installed separately above because its generation-only
+# dependencies (API clients and vLLM) are not part of the evaluator runtime.
+COPY requirements-arm64.lock /tmp/requirements-arm64.lock
+RUN python -m pip install --no-cache-dir \
+    --requirement /tmp/requirements-arm64.lock \
+    && rm /tmp/requirements-arm64.lock
+
+RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt stopwords \
+    && printf '%s  %s\n%s  %s\n' \
+        '51c3078994aeaf650bfc8e028be4fb42b4a0d177d41c012b6a983979653660ec' \
+        '/usr/local/share/nltk_data/tokenizers/punkt.zip' \
+        '48c0e52d8b52546e827f53761fb30300c0ab94f70660d28bd65ba0a86270946b' \
+        '/usr/local/share/nltk_data/corpora/stopwords.zip' \
+    | sha256sum --check --strict
+
+RUN useradd --create-home --uid 1000 bigcodebenchuser \
+    && mkdir --parents /app \
+    && chown bigcodebenchuser:bigcodebenchuser /app
+
+USER bigcodebenchuser
+WORKDIR /app
+
+CMD ["tail", "-f", "/dev/null"]

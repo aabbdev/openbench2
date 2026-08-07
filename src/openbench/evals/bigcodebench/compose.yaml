@@ -1,0 +1,19 @@
+services:
+  default:
+    image: bigcodebench/bigcodebench-evaluate@sha256:1327bddf60be9bc241648c59e6060cac4ca50248a0588ab735cd0200b17cc8c2
+    platform: linux/amd64
+    entrypoint: ["tail", "-f", "/dev/null"]
+    init: true
+    network_mode: none
+    read_only: true
+    environment:
+      MPLCONFIGDIR: /tmp/matplotlib
+    tmpfs:
+      - /app:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=2147483648
+      - /tmp:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=4294967296
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 36g

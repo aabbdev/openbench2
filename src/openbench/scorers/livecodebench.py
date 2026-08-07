@@ -42,6 +42,21 @@ def extract_code(completion: str) -> str:
     return "\n".join(lines[fence_lines[-2] + 1 : fence_lines[-1]])
 
 
+def extract_livebench_code(completion: str) -> str:
+    """Extract code using LiveBench's generic-model fallback behavior."""
+
+    stripped = completion.rstrip()
+    lines = stripped.splitlines()
+    fence_lines = [index for index, line in enumerate(lines) if "```" in line]
+    if len(fence_lines) >= 2:
+        return "\n".join(lines[fence_lines[-2] + 1 : fence_lines[-1]])
+    if len(completion) > 1 and completion[0] == "`" and completion[-1] == "`":
+        return completion[1:-1]
+    if len(fence_lines) == 1 and fence_lines[0] == len(lines) - 1:
+        return "\n".join(lines[:-1])
+    return stripped
+
+
 def decode_test_cases(value: str | list[dict[str, object]]) -> list[dict[str, object]]:
     """Decode plain JSON or the pinned dataset's compressed hidden tests."""
 
@@ -136,6 +151,86 @@ def livecodebench_scorer(
                 explanation="LiveCodeBench runner returned an invalid result.",
             )
 
+        passed = evaluation.get("passed") is True
+        explanation = (
+            f"Passed all {evaluation['tests_run']} tests."
+            if passed
+            else (
+                f"Failed after {evaluation.get('tests_run', 0)} test(s): "
+                f"{evaluation.get('error', 'unknown error')}."
+            )
+        )
+        return Score(
+            value=CORRECT if passed else INCORRECT,
+            answer=code,
+            explanation=explanation,
+        )
+
+    return score
+
+
+@scorer(metrics=[accuracy(), stderr()])
+def livebench_coding_scorer(
+    test_timeout: int = 6,
+    total_timeout: int = 600,
+) -> Scorer:
+    """Score public LiveBench coding tasks in the hardened LCB sandbox."""
+
+    if test_timeout <= 0:
+        raise ValueError("test_timeout must be positive")
+    if total_timeout <= 0:
+        raise ValueError("total_timeout must be positive")
+
+    async def score(state: TaskState, target: Target) -> Score:
+        del target
+        from openbench.datasets.livebench import load_livebench_test_fields
+
+        code = extract_livebench_code(state.output.completion)
+        public_tests, private_tests, metadata, partial_solution = (
+            load_livebench_test_fields(state.metadata)
+        )
+        if partial_solution and not code.startswith(partial_solution):
+            code = f"{partial_solution}\n{code}"
+        tests = decode_test_cases(public_tests) + decode_test_cases(private_tests)
+        test_metadata = decode_metadata(metadata)
+        payload = {
+            "code": code,
+            "tests": tests,
+            "function_name": test_metadata.get("func_name"),
+            "timeout": test_timeout,
+        }
+        environment = sandbox()
+        payload_path = ".openbench_livebench_payload.json"
+        runner_path = ".openbench_livebench_runner.py"
+        runner_source = Path(__file__).with_name("livecodebench_runner.py").read_text()
+        await environment.write_file(payload_path, json.dumps(payload))
+        await environment.write_file(runner_path, runner_source)
+        try:
+            result = await environment.exec(
+                ["python", runner_path, payload_path],
+                timeout=total_timeout,
+                timeout_retry=False,
+            )
+        except TimeoutError:
+            return Score(
+                value=INCORRECT,
+                answer=code,
+                explanation="LiveBench evaluation exceeded its total timeout.",
+            )
+        if not result.success:
+            return Score(
+                value=INCORRECT,
+                answer=code,
+                explanation="LiveBench runner failed inside the sandbox.",
+            )
+        try:
+            evaluation = json.loads(result.stdout.strip().splitlines()[-1])
+        except (IndexError, json.JSONDecodeError):
+            return Score(
+                value=INCORRECT,
+                answer=code,
+                explanation="LiveBench runner returned an invalid result.",
+            )
         passed = evaluation.get("passed") is True
         explanation = (
             f"Passed all {evaluation['tests_run']} tests."

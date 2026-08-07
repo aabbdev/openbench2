@@ -19,6 +19,10 @@ def test_task_registry_contents():
     assert TASK_REGISTRY["livecodebench_v6"] == (
         "openbench.evals.livecodebench.livecodebench_v6"
     )
+    assert TASK_REGISTRY["bigcodebench"] == "openbench.evals.bigcodebench.bigcodebench"
+    assert TASK_REGISTRY["livebench_coding_2024_11_25"] == (
+        "openbench.evals.livebench.livebench_coding_2024_11_25"
+    )
 
 
 def test_load_task_valid():
