@@ -16,7 +16,10 @@ from openbench.datasets.bigcodebench import (
 )
 from openbench.evals.bigcodebench import bigcodebench
 from openbench.evals.bigcodebench.bigcodebench import compose_path_for_runtime
-from openbench.scorers.bigcodebench import build_bigcodebench_payload
+from openbench.scorers.bigcodebench import (
+    build_bigcodebench_payload,
+    score_bigcodebench_evaluation,
+)
 
 
 def _record(**overrides):
@@ -100,7 +103,7 @@ def test_task_uses_official_greedy_generation_settings():
         "openbench.evals.bigcodebench.bigcodebench.get_bigcodebench_dataset",
         return_value=dataset,
     ):
-        task = bigcodebench(epochs=10, limit=1)
+        task = bigcodebench(epochs=10, limit=1, runtime="official")
 
     assert task.name == "bigcodebench_instruct_full"
     assert task.epochs == 10
@@ -129,6 +132,11 @@ def test_bigcodebench_runtime_selects_expected_compose_files():
         compose_path_for_runtime("bad")  # type: ignore[arg-type]
 
 
+def test_arm64_runtime_rejects_unvalidated_full_subset():
+    with pytest.raises(ValueError, match="validated only for subset='hard'"):
+        bigcodebench(subset="full", runtime="arm64")
+
+
 def test_build_bigcodebench_payload_preserves_official_execution_fields():
     payload = build_bigcodebench_payload(
         "```python\ndef task_func(): return 1\n```",
@@ -149,3 +157,15 @@ def test_build_bigcodebench_payload_preserves_official_execution_fields():
     assert payload["task_id"] == "BigCodeBench/0"
     assert payload["entry_point"] == "task_func"
     assert payload["calibrated"] is True
+
+
+def test_canonical_failure_refuses_to_report_model_score():
+    with pytest.raises(RuntimeError, match="refusing to report a model score"):
+        score_bigcodebench_evaluation(
+            {
+                "passed": False,
+                "status": "canonical_error",
+                "canonical_time": None,
+            },
+            task_id="BigCodeBench/101",
+        )

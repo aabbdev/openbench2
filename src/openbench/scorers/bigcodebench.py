@@ -52,6 +52,29 @@ def build_bigcodebench_payload(
     }
 
 
+def score_bigcodebench_evaluation(evaluation: dict[str, Any], task_id: str) -> Score:
+    """Convert a runner result while refusing uncalibrated canonical failures."""
+
+    status = evaluation.get("status", "unknown")
+    if status == "canonical_error":
+        raise RuntimeError(
+            f"BigCodeBench canonical validation failed for {task_id}; "
+            "refusing to report a model score"
+        )
+
+    passed = evaluation.get("passed") is True
+    explanation = (
+        "Passed official BigCodeBench tests."
+        if passed
+        else f"Failed official BigCodeBench tests with status: {status}."
+    )
+    return Score(
+        value=CORRECT if passed else INCORRECT,
+        answer=evaluation.get("solution", ""),
+        explanation=explanation,
+    )
+
+
 @scorer(metrics=[accuracy(), stderr()])
 def bigcodebench_scorer(
     *,
@@ -121,20 +144,9 @@ def bigcodebench_scorer(
                 explanation="BigCodeBench runner returned an invalid result.",
             )
 
-        status = evaluation.get("status", "unknown")
-        passed = evaluation.get("passed") is True
-        canonical_time = evaluation.get("canonical_time")
-        explanation = (
-            "Passed official BigCodeBench tests."
-            if passed
-            else f"Failed official BigCodeBench tests with status: {status}."
-        )
-        if canonical_time is None:
-            explanation += " Canonical timing failed; used official fallback timeout."
-        return Score(
-            value=CORRECT if passed else INCORRECT,
-            answer=evaluation.get("solution", ""),
-            explanation=explanation,
+        return score_bigcodebench_evaluation(
+            evaluation,
+            task_id=str(state.metadata["task_id"]),
         )
 
     return score

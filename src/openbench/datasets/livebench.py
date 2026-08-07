@@ -7,8 +7,8 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-import pyarrow as pa
-import pyarrow.parquet as pq
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
 from huggingface_hub import hf_hub_download
 from inspect_ai.dataset import Dataset, MemoryDataset, Sample
 

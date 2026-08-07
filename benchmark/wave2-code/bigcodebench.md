@@ -3,10 +3,12 @@
 ## Decision
 
 BigCodeBench now has an OpenBench adapter and an arm64 source-equivalent scorer
-image that passes a local Docker runner smoke on Apple Silicon. The pinned
-official evaluator image is still `linux/amd64` only, so official-image parity
-remains blocked until it is smoke-tested on a usable native `linux/amd64` Docker
-host.
+image validated against all 148 canonical Hard records on Apple Silicon. It
+passes 145 records under the hardened no-network sandbox; the remaining three
+require live external downloads and therefore fail closed instead of being
+counted as model errors. The pinned official evaluator image is still
+`linux/amd64` only, so official-image parity remains blocked until it is
+smoke-tested on a usable native `linux/amd64` Docker host.
 
 ## Canonical sources
 
@@ -20,14 +22,15 @@ host.
 - Official evaluator image: `bigcodebench/bigcodebench-evaluate` manifest
   `sha256:1327bddf60be9bc241648c59e6060cac4ca50248a0588ab735cd0200b17cc8c2`
   for `linux/amd64`.
-- License: MIT.
+- License: Apache-2.0.
 
 ## Implemented OpenBench surface
 
 - Registry ID: `bigcodebench`.
 - Parameters: `split="complete" | "instruct"`, `subset="full" | "hard"`,
   `runtime="auto" | "official" | "arm64"`, optional `limit`, `epochs`, and
-  `total_timeout`.
+  `total_timeout`. The source-equivalent arm64 runtime currently accepts only
+  `subset="hard"`; the unvalidated full subset fails at task construction.
 - Dataset loader: immutable Hugging Face revisions, with hidden execution fields
   resolved only at score time.
 - Prompting: follows BigCodeBench's OpenAI/API chat backend wrapper by applying
@@ -36,6 +39,8 @@ host.
 - Scoring: sandbox runner uses BigCodeBench's own `sanitize`, `trusted_check`,
   and `untrusted_check`. Canonical solution timing is computed per task and used
   to calibrate the generated solution timeout, matching the upstream evaluator.
+  If canonical calibration fails, the scorer raises an evaluation error rather
+  than silently assigning an incorrect model score.
 - Docker: `runtime="official"` pins the official `linux/amd64` evaluator image;
   `runtime="arm64"` builds OpenBench's source-equivalent scorer image from the
   pinned upstream source commit for Apple Silicon; `runtime="auto"` selects
@@ -51,7 +56,7 @@ source .venv/bin/activate && ruff check src/openbench/datasets/bigcodebench.py s
 All checks passed!
 
 source .venv/bin/activate && pytest tests/test_bigcodebench.py tests/test_registry.py
-21 passed
+23 passed
 
 source .venv/bin/activate && mypy src/openbench/datasets/bigcodebench.py src/openbench/scorers/bigcodebench.py src/openbench/scorers/bigcodebench_runner.py src/openbench/evals/bigcodebench tests/test_bigcodebench.py
 Success: no issues found in 6 source files
@@ -74,10 +79,33 @@ docker compose -f src/openbench/evals/bigcodebench/compose.arm64.yaml -p openben
 compose-imports-ok
 ```
 
-The arm64 image intentionally does not install the full upstream
-`requirements-eval.txt`, because several old scientific pins are amd64-oriented
-and brittle on arm64. It installs the pinned BigCodeBench source plus the
-minimal dependencies required by OpenBench's official sanitizer/evaluator path.
+The arm64 image intentionally omits BigCodeBench's generation-only API clients
+and vLLM dependency because OpenBench generates responses outside the scorer
+container. Its evaluator dependencies are fully resolved in
+`requirements-arm64.lock`; the Python base image, BigCodeBench source commit,
+toolchain, direct/transitive Python packages, and NLTK asset hashes are pinned.
+
+## Canonical Hard preflight
+
+The source-equivalent image was iterated against all 148 canonical Hard records.
+The machine-readable experiment log remains outside Git at
+`/tmp/openbench-bcb-arm64-validation/results.tsv`; prompts, tests, and canonical
+solutions are not included in the log.
+
+| Image state | Canonical pass rate | Wall time |
+| --- | ---: | ---: |
+| Minimal scorer baseline | 79/148 (53.38%) | 170.22 s |
+| First dependency layer | 133/148 (89.86%) | 607.98 s |
+| Second dependency/NLTK layer | 143/148 (96.62%) | 422.87 s |
+| Restored legacy imports | 144/148 (97.30%) | 437.43 s |
+| Hardened tmpfs caches | 145/148 (97.97%) | 500.89 s |
+
+The final three failures are `BigCodeBench/101`, `BigCodeBench/590`, and
+`BigCodeBench/1012`. Their canonical solutions access live resources hosted by
+CMU, Wikibooks, Google Drive, or learningcontainer. OpenBench keeps networking
+disabled for untrusted generated programs and does not replace these resources
+with invented fixtures. These samples therefore produce a canonical validation
+error and no model score.
 
 Blocked locally:
 
@@ -107,6 +135,8 @@ installation was explicitly approved for this validation attempt.
 
 For strict upstream-image parity, run the official Docker scorer smoke on a
 native `linux/amd64` host with Docker privileges sufficient for image extraction
-and container creation. Until that passes, BigCodeBench should be described as
-implemented with an arm64 source-equivalent smoke, not as validated against the
-official amd64 image.
+and container creation. A faithful full 148-task hardened run additionally needs
+immutable, audited fixtures for the three live-network records; enabling network
+for generated programs is not an acceptable fallback. Until both requirements
+are satisfied, BigCodeBench should be described as arm64 Hard 145/148 validated,
+not as full official-image parity.

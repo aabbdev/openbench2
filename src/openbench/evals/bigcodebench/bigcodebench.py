@@ -53,6 +53,12 @@ def bigcodebench(
 
     if epochs <= 0:
         raise ValueError("epochs must be positive")
+    compose_path = compose_path_for_runtime(runtime)
+    if compose_path == ARM64_COMPOSE_PATH and subset != "hard":
+        raise ValueError(
+            "The arm64 BigCodeBench runtime is validated only for subset='hard'; "
+            "use runtime='official' for subset='full'"
+        )
     reducers = ["mean", "pass_at_1"]
     if epochs >= 5:
         reducers.append("pass_at_5")
@@ -64,7 +70,7 @@ def bigcodebench(
         dataset=get_bigcodebench_dataset(split=split, subset=subset, limit=limit),
         solver=generate(),
         scorer=bigcodebench_scorer(total_timeout=total_timeout),
-        sandbox=("docker", str(compose_path_for_runtime(runtime))),
+        sandbox=("docker", str(compose_path)),
         epochs=Epochs(epochs, reducer=reducers),
         config=GenerateConfig(
             temperature=0,

@@ -30,7 +30,20 @@ def main() -> None:
         payload["min_time_limit"],
     )
     canonical_time = canonical["time"]
-    status, details = untrusted_check(
+    if canonical_time is None:
+        print(
+            json.dumps(
+                {
+                    "passed": False,
+                    "status": "canonical_error",
+                    "details": {},
+                    "canonical_time": None,
+                    "solution": solution,
+                }
+            )
+        )
+        return
+    status, _details = untrusted_check(
         solution,
         payload["test"],
         payload["entry_point"],
@@ -38,14 +51,14 @@ def main() -> None:
         payload["max_data_limit"],
         payload["max_stack_limit"],
         payload["min_time_limit"],
-        canonical_time if canonical_time is not None else 20,
+        canonical_time,
     )
     print(
         json.dumps(
             {
                 "passed": status == PASS,
                 "status": status,
-                "details": details,
+                "details": {},
                 "canonical_time": canonical_time,
                 "solution": solution,
             }

@@ -55,7 +55,12 @@ include = ["openbench*"]
 
 [tool.setuptools.package-data]
 "openbench.evals.livecodebench" = ["Dockerfile", "compose.yaml"]
-"openbench.evals.bigcodebench" = ["Dockerfile.arm64", "compose.yaml", "compose.arm64.yaml"]
+"openbench.evals.bigcodebench" = [
+  "Dockerfile.arm64",
+  "compose.yaml",
+  "compose.arm64.yaml",
+  "requirements-arm64.lock",
+]
 "openbench.evals.evalplus" = ["Dockerfile", "compose.yaml"]
 "openbench.evals.bfcl" = [
   "Dockerfile",
