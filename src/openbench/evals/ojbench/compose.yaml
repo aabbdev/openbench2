@@ -1,0 +1,22 @@
+services:
+  default:
+    build:
+      context: .
+    init: true
+    command: tail -f /dev/null
+    user: "1000:1000"
+    network_mode: none
+    read_only: true
+    volumes:
+      - ${OPENBENCH_OJBENCH_DATA_DIR:?OJBench data cache is not configured}:/problems:ro
+    tmpfs:
+      - /workspace:rw,exec,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=1073741824
+      - /tmp:rw,exec,nosuid,nodev,uid=1000,gid=1000,mode=0700,size=4294967296
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 3g
